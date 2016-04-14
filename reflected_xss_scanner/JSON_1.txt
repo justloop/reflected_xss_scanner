@@ -1,0 +1,1 @@
+[{"url": "https://app8.com/upload/index.php", "method": "POST", "param": ["password", "email"]}]
