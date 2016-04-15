@@ -12,9 +12,11 @@ from reflected_xss_scanner.spiders.crawler import crawler
 from reflected_xss_scanner.spiders.json_file_writer import json_file_writer
 from reflected_xss_scanner.spiders.result_db import result_db
 import json
-import time
+import sys
 
 logger = logging.getLogger(__name__)
+reload(sys)
+sys.setdefaultencoding('utf-8')
 process = CrawlerProcess(get_project_settings())
 configure_logging()
 Config = config()

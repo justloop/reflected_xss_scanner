@@ -25,9 +25,7 @@ class crawler(scrapy.Spider):
     handle_httpstatus_list = [500]
     link_extractor = LinkExtractor()
     rules = (Rule(link_extractor, callback='parse', follow=True),)
-    allowed = ['.php', '.html', '.htm', '.xml', '.xhtml', '.xht', '.xhtm',
-               '.asp', '.aspx', '.php3', '.php4', '.php5', '.shtm',
-               '.shtml', '.phtm', '.phtml', '.jhtml', '.pl', '.jsp', '.cfm', '.cfml', '.swf', '.js']
+    not_allowed = [".css"]
     allowed_domains=[]
 
     def __init__(self, rule=CrawlerRule()):
@@ -122,28 +120,20 @@ class crawler(scrapy.Spider):
             return url
 
     def http_normalize_slashes(self,url):
-        url = str(url)
-        segments = url.split('/')
-        correct_segments = []
-        for segment in segments:
-            if segment != '':
-                correct_segments.append(segment)
-        first_segment = str(correct_segments[0])
-        if first_segment.find('http') == -1:
-            correct_segments = ['http:'] + correct_segments
-        correct_segments[0] = correct_segments[0] + '/'
-        normalized_url = '/'.join(correct_segments)
+        normalized_url = url.replace("///","//")
         return normalized_url
 
     def url_valid(self, url, orig_url):
         if url.startswith("http"):
             url = self.http_normalize_slashes(self.http_normalize_repeat_domain(url))
 
-            url1 = self.url_processor(url)
-            url2 = self.url_processor(orig_url)
-            if url1 != url2:
+            (netloc1, protocol1, doc_domain1, path1) = self.url_processor(url)
+            (netloc2, protocol2, doc_domain2, path2) = self.url_processor(orig_url)
+            if doc_domain1 != doc_domain1:
                 return
-        return urljoin(orig_url,url)
+        return_url = urljoin(orig_url,url)
+        if return_url.startswith("http"):
+            return return_url
 
     def parse_res(self, response):
         response_url = urlparse(response.url)
@@ -152,7 +142,7 @@ class crawler(scrapy.Spider):
         except Exception:
             return
 
-        normalized_page = BeautifulSoup(response.body)
+        normalized_page = BeautifulSoup(unicode(response.body, errors='replace'))
 
         #get all the forms
         forms = normalized_page.findAll('form')
@@ -177,7 +167,7 @@ class crawler(scrapy.Spider):
                 real_url = urlsplit(validated_url)
                 if real_url.scheme == 'mailto':
                     continue
-                if len(real_url.query) > 0 and self.get_ext(real_url.path) in self.allowed:
+                if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
                     # only add to result if have parameters
                     param_dict = parse_qs(real_url.query, keep_blank_values=True)
                     result_db.add_to_result("GET", self.url_valid(real_url.path,response.url),
@@ -189,7 +179,7 @@ class crawler(scrapy.Spider):
                     for param in self.ignore_fields:
                         if param in real_url.query:
                             tag_url = real_url.path
-                if tag_url not in self.urls_visited and self.get_ext(real_url.path) in self.allowed:
+                if tag_url not in self.urls_visited and self.get_ext(real_url.path) not in self.not_allowed:
                     self.urls_visited.append(tag_url)
                     if "logout" not in validated_url:
                         yield Request(validated_url, callback=self.parse_res)
@@ -270,7 +260,7 @@ class crawler(scrapy.Spider):
                     for param in self.ignore_fields:
                         if param in real_url.query:
                             tag_url = real_url.path
-                if tag_url not in self.urls_visited and self.get_ext(real_url.path) in self.allowed:
+                if tag_url not in self.urls_visited and self.get_ext(real_url.path) not in self.not_allowed:
                     self.urls_visited.append(tag_url)
                     if len(real_url.query) > 0:
                         # only add to result if have parameters
@@ -327,12 +317,3 @@ class crawler(scrapy.Spider):
                 params.add(select['name'])
 
         return list(params)
-
-
-
-
-
-
-
-
-
