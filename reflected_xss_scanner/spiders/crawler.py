@@ -37,6 +37,7 @@ class crawler(scrapy.Spider):
         self.allowed_domains = rule.allowed_domains
         self.start_urls = rule.start_urls
         self.login_url = rule.login_url
+        self.put_headers = False
 
         # Login details
         self.login_user = self.rule.user
@@ -186,6 +187,14 @@ class crawler(scrapy.Spider):
 
         #get forms from javascript
         self.get_forms(response)
+
+        #get headers
+        if not self.put_headers:
+            headers = []
+            for headerName, headerValue in response.headers.iteritems():
+                headers.append(headerName)
+            result_db.add_to_result("HEADERS",response.url,list(headers))
+            self.put_headers = True
 
         #get urls from javascript
 
