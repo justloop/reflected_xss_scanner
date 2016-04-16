@@ -11,13 +11,15 @@ from os.path import splitext,split
 from scrapy.spidermiddlewares.httperror import HttpErrorMiddleware, HttpError
 from reflected_xss_scanner.spiders.process_login import fill_login_form
 import lxml.etree
-import lxml.html
+from lxml import html
 from reflected_xss_scanner.spiders.result_db import result_db
 from reflected_xss_scanner.spiders.swf_parser import swf_parser
 from reflected_xss_scanner.spiders.config import config
+from reflected_xss_scanner.spiders.render import Render
 from BeautifulSoup import BeautifulSoup
 import json
 from ConfigParser import NoOptionError
+
 
 
 class crawler(scrapy.Spider):
@@ -199,6 +201,13 @@ class crawler(scrapy.Spider):
             self.put_headers = True
 
         #get urls from javascript
+        r = Render(response.url)
+        result = r.frame.toHtml()
+        # This step is important.Converting QString to Ascii for lxml to process
+        tree = html.fromstring(str(result.toAscii()))
+        archive_links = tree.xpath('//@href')
+        print archive_links
+
 
 
     def get_urls(self,response):
