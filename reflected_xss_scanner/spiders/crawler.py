@@ -159,6 +159,8 @@ class crawler(scrapy.Spider):
                     yield Request(url=validated_url, callback=self.parse_swf)
                 elif validated_url and self.get_ext(validated_url) == '.js':
                     yield Request(url=validated_url, callback=self.get_forms)
+                elif validated_url and self.get_ext(validated_url) in ['.php','.jsp','']:
+                    yield Request(url=validated_url, callback=self.parse_res)
 
 
         # extract all the get urls
@@ -209,37 +211,57 @@ class crawler(scrapy.Spider):
         """ Extracting the forms from the website """
         #pattern 1
         forms = re.findall(
-            """<form.*?action=['|"](.*?)['|"].*?method=['|"](.*?)['|"].*?>(.*?)</form>""", response.body,
+            """<form.*?action=('(.*?)'|"(.*?)").*?method=('(.*?)'|"(.*?)").*?>(.*?)</form>""", response.body,
             re.DOTALL)  # Parse forms
         for form in forms:  # Scan each form
             params = self.scan(form)
-            validated_url = self.url_valid(form[0], response.url)
+            if len(form[1]) > 0:
+                action = re.sub('[ +\'"]', '', form[1])
+            else:
+                action = re.sub('[ +\'"]', '', form[2])
+
+            if len(form[4]) > 0:
+                method = re.sub('[ +\'"]', '', form[4])
+            else:
+                method = re.sub('[ +\'"]', '', form[5])
+
+            validated_url = self.url_valid(action, response.url)
 
             if validated_url and (validated_url not in self.post_urls_visited):
                 self.post_urls_visited.append(validated_url)
 
-                result_db.add_to_result(form[1].upper(), validated_url, params)
+                result_db.add_to_result(method.upper(), validated_url, params)
 
         # pattern 2
         forms2 = re.findall(
-            """<form.*?method=['|"](.*?)['|"].*?action=['|"](.*?)['|"].*?>(.*?)</form>""", response.body,
+            """<form.*?method=('(.*?)'|"(.*?)").*?action=('(.*?)'|"(.*?)").*?>(.*?)</form>""", response.body,
             re.DOTALL)  # Parse forms
         for form in forms2:  # Scan each form
             params = self.scan(form)
-            validated_url = self.url_valid(form[1], response.url)
+            if len(form[1]) > 0:
+                method = re.sub('[ +\'"]', '', form[1])
+            else:
+                method = re.sub('[ +\'"]', '', form[2])
+
+            if len(form[4]) > 0:
+                action = re.sub('[ +\'"]', '', form[4])
+            else:
+                action = re.sub('[ +\'"]', '', form[5])
+
+            validated_url = self.url_valid(action, response.url)
             if validated_url is not None and (validated_url not in self.post_urls_visited):
                 self.post_urls_visited.append(validated_url)
 
-                result_db.add_to_result(form[0].upper(), validated_url, params)
+                result_db.add_to_result(method.upper(), validated_url, params)
 
 
 
 
     def scan(self, form):
         """ Gather all the data required and send it to the website """
-        inputs = re.findall("""<input.*?name=['|"](.*?)['|"].*?>""", form[2])  # Extract all the required parameters from the webpage
-        textareas = re.findall("""<textarea.*?name=['|"](.*?)['|"].*?>""",form[2])
-        selects = re.findall("""<select.*?name=['|"](.*?)['|"].*?>""",form[2])
+        inputs = re.findall("""<input.*?name=['|"](.*?)['|"].*?>""", form[6])  # Extract all the required parameters from the webpage
+        textareas = re.findall("""<textarea.*?name=['|"](.*?)['|"].*?>""",form[6])
+        selects = re.findall("""<select.*?name=['|"](.*?)['|"].*?>""",form[6])
         params = set()
         for input in inputs:
             params.add(input)
