@@ -78,7 +78,7 @@ class crawler(scrapy.Spider):
                 if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
                     # only add to result if have parameters
                     param_dict = parse_qs(real_url.query, keep_blank_values=True)
-                    result_db.add_to_result("GET", real_url.path, list(param_dict.keys()))
+                    result_db.add_to_result("GET", real_url.scheme + "://" + real_url.hostname + real_url.path, list(param_dict.keys()))
                 if self.ignore_params:
                     tag_url = real_url.scheme + "://" + real_url.hostname + real_url.path
                 else:
@@ -121,7 +121,7 @@ class crawler(scrapy.Spider):
                 if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
                     # only add to result if have parameters
                     param_dict = parse_qs(real_url.query, keep_blank_values=True)
-                    result_db.add_to_result("GET", real_url.path, list(param_dict.keys()))
+                    result_db.add_to_result("GET", real_url.scheme + "://" + real_url.hostname + real_url.path, list(param_dict.keys()))
                 if self.ignore_params:
                     tag_url = real_url.scheme + "://" + real_url.hostname + real_url.path
                 else:
@@ -151,7 +151,7 @@ class crawler(scrapy.Spider):
                     if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
                         # only add to result if have parameters
                         param_dict = parse_qs(real_url.query, keep_blank_values=True)
-                        result_db.add_to_result("GET", real_url.path, list(param_dict.keys()))
+                        result_db.add_to_result("GET", real_url.scheme + "://" + real_url.hostname + real_url.path, list(param_dict.keys()))
                     if self.ignore_params:
                         tag_url = real_url.scheme + "://" + real_url.hostname + real_url.path
                     else:
