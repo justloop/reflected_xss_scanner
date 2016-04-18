@@ -6,16 +6,14 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import Rule
 from scrapy.http import FormRequest, Request
 from reflected_xss_scanner.spiders.crawlerrule import CrawlerRule
-from urlparse import urlparse, parse_qsl, urlsplit,parse_qs,urljoin
-from os.path import splitext,split
-from scrapy.spidermiddlewares.httperror import HttpErrorMiddleware, HttpError
+from urlparse import urlparse, urlsplit,parse_qs,urljoin
+from os.path import splitext
 from reflected_xss_scanner.spiders.process_login import fill_login_form
 import lxml.etree
 from lxml import html
 from reflected_xss_scanner.spiders.result_db import result_db
 from reflected_xss_scanner.spiders.swf_parser import swf_parser
 from reflected_xss_scanner.spiders.config import config
-from reflected_xss_scanner.spiders.render import Render
 from BeautifulSoup import BeautifulSoup
 import json
 from ConfigParser import NoOptionError
@@ -65,7 +63,8 @@ class crawler(scrapy.Spider):
         if self.login_user and self.login_pass:
                 yield Request(url=self.login_url, callback=self.login)
         else:
-            yield Request(url=self.start_urls[0], dont_filter=True, callback=self.parse_res)
+            for start_url in self.start_urls:
+                yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
 
     def login(self, response):
         self.log('Logging in...')
@@ -75,7 +74,7 @@ class crawler(scrapy.Spider):
             real_url = urlsplit(validated_url)
             result_db.add_to_result(method.upper(), real_url.scheme + "://" + real_url.hostname + real_url.path,
                                     list(dict(full_args).keys()))
-            return FormRequest(validated_url,
+            yield FormRequest(validated_url,
                                method=method,
                                formdata=args,
                                callback=self.confirm_login,
@@ -83,22 +82,23 @@ class crawler(scrapy.Spider):
         except Exception as e:
             print(e)
             self.log('Login failed')
-            return Request(url=self.start_urls[0], dont_filter=True)
+            for start_url in self.start_urls:
+                yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
 
     def confirm_login(self, response):
         ''' Check that the username showed up in the response page '''
+        for start_url in self.start_urls:
+            yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
         if self.login_user.lower() in response.body.lower():
             self.log('Successfully logged in...')
-            return self.parse(response)
+            yield Request(url=response.url, dont_filter=True, callback=self.parse_res)
         else:
             self.log('login failed')
-            return Request(url=self.start_urls[0], dont_filter=True)
 
     def parse(self, response):
         start_url = urlparse(response.url)
         self.base_url = start_url.scheme + '://' + start_url.netloc
-        requests = self.parse_res(response)
-        return requests
+        self.parse_res(response)
 
     def url_processor(self, url):
         try:
@@ -199,16 +199,6 @@ class crawler(scrapy.Spider):
                 headers.append(headerName)
             result_db.add_to_result("HEADERS",response.url,list(headers))
             self.put_headers = True
-
-        #get urls from javascript
-        r = Render(response.url)
-        result = r.frame.toHtml()
-        # This step is important.Converting QString to Ascii for lxml to process
-        tree = html.fromstring(str(result.toAscii()))
-        archive_links = tree.xpath('//@href')
-        print archive_links
-
-
 
     def get_urls(self,response):
         # find get urls:

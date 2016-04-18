@@ -27,12 +27,11 @@ for domain,website_list in websites:
     for website in website_list_json:
         print("--------------------------------------------------------")
         print("crawling websites: " + domain)
-        print("site info: "+','.join(website))
         print("-----------------------starting-------------------------")
         rule = CrawlerRule()
         rule.name = domain
         rule.allowed_domains = [domain]
-        rule.start_urls = [website[0]]
+        rule.start_urls = website[0]
         if len(website) > 2:
             print("start login crawler...")
             rule.login_url = website[1]
