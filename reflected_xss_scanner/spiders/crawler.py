@@ -10,7 +10,7 @@ from urlparse import urlparse, urlsplit,parse_qs,urljoin
 from os.path import splitext
 from reflected_xss_scanner.spiders.process_login import fill_login_form
 import lxml.etree
-from lxml import html
+import time
 from reflected_xss_scanner.spiders.result_db import result_db
 from reflected_xss_scanner.spiders.swf_parser import swf_parser
 from reflected_xss_scanner.spiders.config import config
@@ -64,7 +64,31 @@ class crawler(scrapy.Spider):
                 yield Request(url=self.login_url, callback=self.login)
         else:
             for start_url in self.start_urls:
-                yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
+                if (";" in start_url):
+                    split_arr = start_url.split(';')
+                    validated_url = split_arr[0]
+                    yield Request(url=validated_url, dont_filter=True, callback=self.parse_res)
+                    time.sleep(int(split_arr[1]))
+
+                else:
+                    validated_url = start_url
+                    yield Request(url=validated_url, dont_filter=True, callback=self.parse_res)
+
+                real_url = urlsplit(validated_url)
+                if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
+                    # only add to result if have parameters
+                    param_dict = parse_qs(real_url.query, keep_blank_values=True)
+                    result_db.add_to_result("GET", real_url.path, list(param_dict.keys()))
+                if self.ignore_params:
+                    tag_url = real_url.scheme + "://" + real_url.hostname + real_url.path
+                else:
+                    tag_url = validated_url
+                    for param in self.ignore_fields:
+                        if param in real_url.query:
+                            tag_url = real_url.path
+                if tag_url not in self.urls_visited and self.get_ext(real_url.path) not in self.not_allowed:
+                    self.urls_visited.append(tag_url)
+
 
     def login(self, response):
         self.log('Logging in...')
@@ -83,12 +107,62 @@ class crawler(scrapy.Spider):
             print(e)
             self.log('Login failed')
             for start_url in self.start_urls:
-                yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
+                if (";" in start_url):
+                    split_arr = start_url.split(';')
+                    validated_url = split_arr[0]
+                    yield Request(url=validated_url, dont_filter=True, callback=self.parse_res)
+                    time.sleep(int(split_arr[1]))
+
+                else:
+                    validated_url = start_url
+                    yield Request(url=validated_url, dont_filter=True, callback=self.parse_res)
+
+                real_url = urlsplit(validated_url)
+                if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
+                    # only add to result if have parameters
+                    param_dict = parse_qs(real_url.query, keep_blank_values=True)
+                    result_db.add_to_result("GET", real_url.path, list(param_dict.keys()))
+                if self.ignore_params:
+                    tag_url = real_url.scheme + "://" + real_url.hostname + real_url.path
+                else:
+                    tag_url = validated_url
+                    for param in self.ignore_fields:
+                        if param in real_url.query:
+                            tag_url = real_url.path
+                if tag_url not in self.urls_visited and self.get_ext(real_url.path) not in self.not_allowed:
+                    self.urls_visited.append(tag_url)
 
     def confirm_login(self, response):
         ''' Check that the username showed up in the response page '''
         for start_url in self.start_urls:
-            yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
+            if(";" in start_url):
+                for start_url in self.start_urls:
+                    if (";" in start_url):
+                        split_arr = start_url.split(';')
+                        validated_url = split_arr[0]
+                        yield Request(url=validated_url, dont_filter=True, callback=self.parse_res)
+                        time.sleep(int(split_arr[1]))
+
+                    else:
+                        validated_url = start_url
+                        yield Request(url=validated_url, dont_filter=True, callback=self.parse_res)
+
+                    real_url = urlsplit(validated_url)
+                    if len(real_url.query) > 0 and self.get_ext(real_url.path) not in self.not_allowed:
+                        # only add to result if have parameters
+                        param_dict = parse_qs(real_url.query, keep_blank_values=True)
+                        result_db.add_to_result("GET", real_url.path, list(param_dict.keys()))
+                    if self.ignore_params:
+                        tag_url = real_url.scheme + "://" + real_url.hostname + real_url.path
+                    else:
+                        tag_url = validated_url
+                        for param in self.ignore_fields:
+                            if param in real_url.query:
+                                tag_url = real_url.path
+                    if tag_url not in self.urls_visited and self.get_ext(real_url.path) not in self.not_allowed:
+                        self.urls_visited.append(tag_url)
+            else:
+                yield Request(url=start_url, dont_filter=True, callback=self.parse_res)
         if self.login_user.lower() in response.body.lower():
             self.log('Successfully logged in...')
             yield Request(url=response.url, dont_filter=True, callback=self.parse_res)
