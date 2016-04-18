@@ -12,5 +12,7 @@ sudo python setup.py install
 export PYTHONUNBUFFERED=1
 export PYTHONPATH=$PWD
 
+sudo chmod 777 -R reflected_xss_scanner
+
 #to run:
 #cd reflected_xss_scanner;python main.py
