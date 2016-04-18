@@ -27,6 +27,15 @@ class crawler(scrapy.Spider):
     rules = (Rule(link_extractor, callback='parse', follow=True),)
     not_allowed = [".css"]
     allowed_domains=[]
+    headers = [
+        'Connection',
+        'User-Agent',
+        'Content-type',
+        'Accept',
+        'Referer',
+        'Accept-Encoding',
+        'Accept-Language',
+        'Accept-Charset']
 
     def __init__(self, rule=CrawlerRule()):
         super(crawler, self).__init__(self)
@@ -268,10 +277,7 @@ class crawler(scrapy.Spider):
 
         #get headers
         if not self.put_headers:
-            headers = []
-            for headerName, headerValue in response.headers.iteritems():
-                headers.append(headerName)
-            result_db.add_to_result("HEADERS",response.url,list(headers))
+            result_db.add_to_result("HEADERS",response.url,list(self.headers))
             self.put_headers = True
 
     def get_urls(self,response):
