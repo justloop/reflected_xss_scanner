@@ -7,6 +7,7 @@ sudo pip install beautifulsoup
 wget https://www.dropbox.com/s/1xtjeia2fnogtnu/reflected_xss_scanner.zip
 unzip reflected_xss_scanner.zip
 cd reflected_xss_scanner
+sudo python setup.py install
 
 export PYTHONUNBUFFERED=1
 export PYTHONPATH=$PWD
